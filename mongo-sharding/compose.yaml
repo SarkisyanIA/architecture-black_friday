@@ -1,0 +1,89 @@
+services:
+
+  configSrv:
+    image: mongo:latest
+    container_name: configSrv
+    restart: always
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.10
+    volumes:
+      - config-data:/data/db
+    command: ["mongod", "--configsvr", "--replSet", "cfgrs", "--bind_ip_all", "--port", "27017"]
+    # Добавлено явное указание mongod и правильные параметры
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard1:
+    image: mongo:latest
+    container_name: shard1
+    restart: always
+    ports:
+      - "27018:27018"
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.9
+    volumes:
+      - shard1-data:/data/db
+    command: ["mongod", "--shardsvr", "--replSet", "shard1rs", "--bind_ip_all", "--port", "27018"]
+    # Шарды тоже лучше сделать replica set (можно single-node)
+
+  shard2:
+    image: mongo:latest
+    container_name: shard2
+    restart: always
+    ports:
+      - "27019:27019"
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.8
+    volumes:
+      - shard2-data:/data/db
+    command: ["mongod", "--shardsvr", "--replSet", "shard2rs", "--bind_ip_all", "--port", "27019"]
+  
+  mongos_router:
+    image: mongo:latest
+    container_name: mongos_router
+    restart: always
+    ports:
+      - "27020:27020"
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.7
+    depends_on:
+      - configSrv
+      - shard1
+      - shard2
+    command: ["mongos", "--configdb", "cfgrs/configSrv:27017", "--bind_ip_all", "--port", "27020"]
+    # Правильный формат: имя_реплики/хост:порт
+
+  pymongo_api:
+    container_name: pymongo_api
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      - mongos_router
+      - configSrv
+      - shard1
+      - shard2
+    ports:
+      - 8080:8080
+    networks:
+      - app-network
+    environment:
+      MONGODB_URL: "mongodb://mongos_router:27020/somedb"
+      MONGODB_DATABASE_NAME: "somedb"
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 173.17.0.0/16
+
+volumes:
+  config-data:
+  shard1-data:
+  shard2-data:
