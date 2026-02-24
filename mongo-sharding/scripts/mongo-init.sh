@@ -22,8 +22,7 @@ rs.initiate(
     {
       _id : "shard1rs",
       members: [
-        { _id : 0, host : "shard1:27018" },
-       // { _id : 1, host : "shard2:27019" }
+        { _id : 0, host : "shard1:27018" }
       ]
     }
 );
@@ -35,7 +34,6 @@ rs.initiate(
     {
       _id : "shard2rs",
       members: [
-       // { _id : 0, host : "shard1:27018" },
         { _id : 1, host : "shard2:27019" }
       ]
     }

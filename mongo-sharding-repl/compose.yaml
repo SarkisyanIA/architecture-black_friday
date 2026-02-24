@@ -143,12 +143,19 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - mongos_router
+      - configSrv
+      - shard1_primary
+      - shard1_secondary1
+      - shard1_secondary2
+      - shard2_primary
+      - shard2_secondary1
+      - shard2_secondary2
     ports:
       - 8080:8080
     networks:
       - app-network
     environment:
-      MONGODB_URL: "mongodb://mongos_router:27020/?directConnection=true"
+      MONGODB_URL: "mongodb://mongos_router:27020/somedb"
       MONGODB_DATABASE_NAME: "somedb"
 
 networks:
